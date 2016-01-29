@@ -5,7 +5,7 @@ DISABLE_AUTO_TITLE="true"
 plugins=(git ruby rails)
 source $ZSH/oh-my-zsh.sh
 export PATH=$HOME/bin:/usr/local/bin:$PATH
-HISTSIZE=
+HISTSIZE=99999
 alias t=git
 alias b=bundle
 alias c=cd
