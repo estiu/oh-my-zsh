@@ -1,20 +1,129 @@
-export ZSH=$HOME/.oh-my-zsh
+HISTSIZE=
 ZSH_THEME="gentoo"
 DISABLE_AUTO_UPDATE="true"
 DISABLE_AUTO_TITLE="true"
-plugins=(git ruby rails)
+
+git config --global push.default current
+
+plugins=(git rails ruby)
+
 source $ZSH/oh-my-zsh.sh
-export PATH=$HOME/bin:/usr/local/bin:$PATH
-HISTSIZE=99999
+
+export EDITOR='vim'
+
 alias t=git
 alias b=bundle
-alias c=cd
 alias g='GREP_COLOR="01;31" grep'
 alias h=history
 alias r='bundle exec rails'
 alias k='bundle exec rake'
 alias vi="vim -c 'startinsert'"
 alias st='git status'
-alias s='RAILS_ENV=staging'
-alias p='RAILS_ENV=production'
+alias m=''
+# alias p='echo > log/*.log; k tmp:clear; bundle exec rspec'
+alias p='bundle exec rspec'
+alias rspec='p'
+alias cln='git reset . > /dev/null; git checkout . > /dev/null; git clean -fd > /dev/null'
+alias ch='git cherry-pick -n'
+alias unwifi="sudo /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -z"
+alias f='networksetup -setairportpower en0 off; networksetup -setairportpower en0 on'
+alias amend='git commit --amend --no-edit'
+alias km='k db:migrate'
+alias rs='km && k assets:precompile && b exec rails s'
+alias rgm='b exec rails g migration'
+alias rc='b exec rails c'
+alias rr='b exec rails runner'
+alias rt='b exec rails routes'
+alias be='bundle exec'
+alias stash="t add -A > /dev/null; t stash > /dev/null"
+alias sap="t stash apply"
+alias c-="git checkout -"
+alias m-="git merge -"
+alias ds='co develop && t pull && co master && t pull && co - && t merge - && t push'
+
+msg(){
+	ruby -e 'print `git log -1 --pretty=%B`.split("\n")[0]'|pbcopy
+}
+
+co(){
+  if [ "$#" -ne 1 ]; then
+    git checkout "$@"
+  else
+    git checkout -q $1
+    ruby -e 'exit(`git status --porcelain` == "" ? 0 : 1)' && git pull -q
+  fi
+}
+
+git_days(){
+	ruby -e 'puts `git log --date=short --pretty=format:"%ad"`.split("\n").uniq.size'
+}
+
+git_commit_count(){
+ git rev-list HEAD --count
+}
+
+setopt nullglob # for rm -rf
+
 setopt interactivecomments
+
+c(){
+  cd $1;
+}
+
+function perf {
+  curl -o /dev/null -s -w "%{time_connect} + %{time_starttransfer} = %{time_total}\n" "$1" $2
+}
+
+#
+# Defines transfer alias and provides easy command line file and folder sharing.
+#
+# Authors:
+#   Remco Verhoef <remco@dutchcoders.io>
+#
+
+transfer() { 
+    # check arguments
+    if [ $# -eq 0 ]; 
+    then 
+        echo "No arguments specified. Usage:\necho transfer /tmp/test.md\ncat /tmp/test.md | transfer test.md"
+        return 1
+    fi
+
+    # get temporarily filename, output is written to this file show progress can be showed
+    tmpfile=$( mktemp -t transferXXX )
+    
+    # upload stdin or file
+    file=$1
+
+    if tty -s; 
+    then 
+        basefile=$(basename "$file" | sed -e 's/[^a-zA-Z0-9._-]/-/g') 
+
+        if [ ! -e $file ];
+        then
+            echo "File $file doesn't exists."
+            return 1
+        fi
+        
+        if [ -d $file ];
+        then
+            # zip directory and transfer
+            zipfile=$( mktemp -t transferXXX.zip )
+            cd $(dirname $file) && zip -r -q - $(basename $file) >> $zipfile
+            curl --progress-bar --upload-file "$zipfile" "https://transfer.sh/$basefile.zip" >> $tmpfile
+            rm -f $zipfile
+        else
+            # transfer file
+            curl --progress-bar --upload-file "$file" "https://transfer.sh/$basefile" >> $tmpfile
+        fi
+    else 
+        # transfer pipe
+        curl --progress-bar --upload-file "-" "https://transfer.sh/$file" >> $tmpfile
+    fi
+   
+    # cat output link
+    cat $tmpfile
+
+    # cleanup
+    rm -f $tmpfile
+}
