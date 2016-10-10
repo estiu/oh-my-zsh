@@ -1,3 +1,4 @@
+export ZSH=$HOME/.oh-my-zsh
 HISTSIZE=
 ZSH_THEME="gentoo"
 DISABLE_AUTO_UPDATE="true"
